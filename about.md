@@ -1,4 +1,4 @@
-# CLAUDE.md
+# About
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -8,7 +8,7 @@ This is a Laravel 11 application built as an admin panel with a client-facing sh
 
 ## Architecture
 
-- **Backend**: Laravel 11 framework with PHP 8.2+
+- **Backend**: Laravel 12 framework with PHP 8.2+
 - **Frontend**: Vite-based asset compilation with SCSS and JavaScript
 - **Database**: MySQL (configured) with SQLite fallback for development
 - **Authentication**: Laravel UI with built-in auth system

@@ -15,6 +15,7 @@
         "predis/predis": "^3.3",
         "spatie/laravel-permission": "^6.21",
         "spatie/laravel-sitemap": "^7.3",
+        "vladimir-yuldashev/laravel-queue-rabbitmq": "^14.4",
         "yajra/laravel-datatables": "^12.0"
     },
     "require-dev": {

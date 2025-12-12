@@ -67,6 +67,7 @@ services:
         image: rabbitmq:3-management
         container_name: laravel_rabbitmq
         ports:
+            - "5672:5672"   # AMQP
             - "15672:15672" # management
         networks:
             - appnet
@@ -88,8 +89,11 @@ services:
     worker:
         build: ./docker/php
         container_name: laravel_worker
-        command: php /var/www/html/artisan queue:work rabbitmq --sleep=3 --tries=3 --timeout=60
-        depends_on: [rabbitmq, db, redis]
+        volumes:
+            - ./:/var/www/html
+        working_dir: /var/www/html
+        command: php artisan queue:work rabbitmq --sleep=3 --tries=3 --timeout=60 --max-jobs=1000 --max-time=3600 --memory=128
+        depends_on: [rabbitmq, db, redis, app]
         networks:
             - appnet
 
@@ -97,6 +101,7 @@ services:
 volumes:
     dbdata:
     clickhouse_data:
+    redis_insight_data:
 
 
 networks:

@@ -15,7 +15,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        // Bind NotificationInterface to TelegramNotificationService
+        $this->app->bind(
+            \App\Contracts\NotificationInterface::class,
+            \App\Services\Notifications\DebugNotificationService::class
+        );
     }
 
     /**

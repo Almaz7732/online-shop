@@ -72,13 +72,14 @@ return [
         ],
         'rabbitmq' => [
             'driver' => 'rabbitmq',
-            'dsn' => env('RABBITMQ_DSN', null),
+            'dsn' => env('RABBITMQ_DSN', 'amqp'),
             'hosts' => [
                 [
                     'host' => env('RABBITMQ_HOST', 'rabbitmq'),
                     'port' => env('RABBITMQ_PORT', 5672),
                     'user' => env('RABBITMQ_USER', 'guest'),
                     'password' => env('RABBITMQ_PASSWORD', 'guest'),
+                    'vhost' => env('RABBITMQ_VHOST', '/'),
                 ],
             ],
             'queue' => env('RABBITMQ_QUEUE', 'default'),

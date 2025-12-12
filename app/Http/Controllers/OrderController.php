@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\NotificationJob;
 use App\Models\Order;
-use App\Service\TelegramService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -45,8 +45,11 @@ class OrderController extends Controller
                 'status' => 'pending'
             ]);
 
-            // Send Telegram notification
-            $this->sendTelegramNotification($order);
+            // Format notification message
+            $message = $this->formatOrderNotification($order);
+
+            // Dispatch notification job to queue
+            NotificationJob::dispatch($message);
 
             return response()->json([
                 'success' => true,
@@ -55,6 +58,7 @@ class OrderController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            Log::error($e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Произошла ошибка при оформлении заказа. Попробуйте еще раз.'
@@ -176,45 +180,44 @@ class OrderController extends Controller
     }
 
     /**
-     * Send Telegram notification for new order
+     * Format order notification message
+     *
+     * @param Order $order
+     * @return string
      */
-    private function sendTelegramNotification(Order $order)
+    private function formatOrderNotification(Order $order): string
     {
-        try {
-            $adminOrderUrl = route('admin.orders.show', $order->id);
+        $adminOrderUrl = route('admin.orders.show', $order->id);
+        $formattedAmount = number_format($order->total_amount, 2) . ' СОМ';
+        $totalItems = collect($order->cart_data)->sum('quantity');
 
-            $formattedAmount = number_format($order->total_amount, 2) . ' СОМ';
+        $productIds = collect($order->cart_data)->pluck('id')->toArray();
+        $products = \App\Models\Product::whereIn('id', $productIds)->get()->keyBy('id');
 
-            $totalItems = collect($order->cart_data)->sum('quantity');
-
-            $productIds = collect($order->cart_data)->pluck('id')->toArray();
-            $products = \App\Models\Product::whereIn('id', $productIds)->get()->keyBy('id');
-
-            $cartItems = collect($order->cart_data)->map(function($item) use ($products) {
-                $product = $products->get($item['id']);
-                if ($product) {
-                    $itemTotal = $product->price * $item['quantity'];
-                    return "• {$product->name} × {$item['quantity']} = " . number_format($itemTotal, 2) . ' СОМ';
-                }
-                return "• Товар ID#{$item['id']} × {$item['quantity']}";
-            })->join("\n");
-
-            $message = "🛒 <b>Новый заказ #{$order->id}</b>\n\n";
-            $message .= "👤 <b>Клиент:</b> {$order->name} {$order->surname}\n";
-            $message .= "📞 <b>Телефон:</b> {$order->phone}\n";
-            $message .= "📍 <b>Адрес:</b> {$order->address}\n";
-            if ($order->comment) {
-                $message .= "💬 <b>Комментарий:</b> {$order->comment}\n";
+        $cartItems = collect($order->cart_data)->map(function ($item) use ($products) {
+            $product = $products->get($item['id']);
+            if ($product) {
+                $itemTotal = $product->price * $item['quantity'];
+                return "• {$product->name} × {$item['quantity']} = " . number_format($itemTotal, 2) . ' СОМ';
             }
-            $message .= "\n📦 <b>Товары ({$totalItems} шт.):</b>\n{$cartItems}\n\n";
-            $message .= "💰 <b>Общая сумма:</b> {$formattedAmount}\n";
-            $message .= "📅 <b>Дата заказа:</b> " . $order->created_at->format('d.m.Y H:i') . "\n\n";
-            $message .= "🔗 <a href=\"{$adminOrderUrl}\">Открыть заказ в админке</a>";
+            return "• Товар ID#{$item['id']} × {$item['quantity']}";
+        })->join("\n");
 
-            TelegramService::sendMessage('chatName', $message);
+        $message = "🛒 <b>Новый заказ #{$order->id}</b>\n\n";
+        $message .= "👤 <b>Клиент:</b> {$order->name} {$order->surname}\n";
+        $message .= "📞 <b>Телефон:</b> {$order->phone}\n";
+        $message .= "📍 <b>Адрес:</b> {$order->address}\n";
 
-        } catch (\Exception $e) {
-            Log::error('Failed to send Telegram notification for order #' . $order->id . ': ' . $e->getMessage());
+        if ($order->comment) {
+            $message .= "💬 <b>Комментарий:</b> {$order->comment}\n";
         }
+
+        $message .= "\n📦 <b>Товары ({$totalItems} шт.):</b>\n{$cartItems}\n\n";
+        $message .= "💰 <b>Общая сумма:</b> {$formattedAmount}\n";
+        $message .= "📅 <b>Дата заказа:</b> " . $order->created_at->format('d.m.Y H:i') . "\n\n";
+        $message .= "🔗 <a href=\"{$adminOrderUrl}\">Открыть заказ в админке</a>";
+
+        return $message;
     }
+
 }
