@@ -45,6 +45,17 @@ return [
 
         'mysql' => [
             'driver' => 'mysql',
+            'read' => [
+                'host' => [
+                    env('DB_READ_HOST', 'mysql_replica'),
+                ],
+            ],
+            'write' => [
+                'host' => [
+                    env('DB_WRITE_HOST','mysql_primary'),
+                ],
+            ],
+            'sticky' => true, // FIX read-after-write, after insert laravel read on primary db
             'url' => env('DATABASE_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),

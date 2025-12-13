@@ -8,7 +8,7 @@ services:
         environment:
             - APP_ENV=local
             - APP_DEBUG=true
-        depends_on: [db, redis, rabbitmq, clickhouse]
+        depends_on: [mysql_primary, redis, rabbitmq, clickhouse]
         networks:
             - appnet
 
@@ -26,16 +26,36 @@ services:
             - appnet
 
 
-    db:
+    mysql_primary:
         image: mysql:8.0
-        container_name: laravel_db
+        container_name: mysql_primary
         environment:
             MYSQL_DATABASE: laravel
             MYSQL_ROOT_PASSWORD: root
             MYSQL_USER: laravel
             MYSQL_PASSWORD: secret
+        command:
+            - --server-id=1
+            - --log-bin=mysql-bin
+            - --binlog-format=ROW
         volumes:
-            - dbdata:/var/lib/mysql
+            - mysql_primary_data:/var/lib/mysql
+        networks:
+            - appnet
+
+    mysql_replica:
+        image: mysql:8.0
+        container_name: mysql_replica
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+        command:
+            - --server-id=2
+            - --relay-log=relay-bin
+            - --read-only=1
+        volumes:
+            - mysql_replica_data:/var/lib/mysql
+        depends_on:
+            - mysql_primary
         networks:
             - appnet
 
@@ -44,14 +64,14 @@ services:
         container_name: phpmyadmin
         restart: unless-stopped
         environment:
-            PMA_HOST: db
+            PMA_HOST: mysql_primary
             PMA_PORT: 3306
             PMA_USER: root
             PMA_PASSWORD: root
         ports:
             - "8081:80"
         depends_on:
-            - db
+            - mysql_primary
         networks:
             - appnet
 
@@ -113,13 +133,14 @@ services:
             - ./:/var/www/html
         working_dir: /var/www/html
         command: php artisan queue:work rabbitmq --sleep=3 --tries=3 --timeout=60 --max-jobs=1000 --max-time=3600 --memory=128
-        depends_on: [rabbitmq, db, redis, app]
+        depends_on: [rabbitmq, mysql_primary, redis, app]
         networks:
             - appnet
 
 
 volumes:
-    dbdata:
+    mysql_primary_data:
+    mysql_replica_data:
     clickhouse_data:
     redis_insight_data:
 
