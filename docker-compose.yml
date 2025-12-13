@@ -76,12 +76,32 @@ services:
     clickhouse:
         image: yandex/clickhouse-server:latest
         container_name: clickhouse
+        ports:
+            - "8123:8123"   # HTTP
+            - "9000:9000"   # Native protocol
         ulimits:
             nofile:
                 soft: 262144
                 hard: 262144
         volumes:
             - clickhouse_data:/var/lib/clickhouse
+        networks:
+            - appnet
+
+    clickhouse-ui:
+        image: spoonest/clickhouse-tabix-web-client:latest
+        container_name: clickhouse_tabix
+        restart: unless-stopped
+        ports:
+            - "8084:80"      # Web-UI
+        environment:
+            CH_SERVER: clickhouse
+            CH_PORT: 8123
+            CH_LOGIN: default
+            CH_PASSWORD: ""
+            CH_DEFAULT_DB: default
+        depends_on:
+            - clickhouse
         networks:
             - appnet
 
