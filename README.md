@@ -3,7 +3,7 @@
 </a>
 </p>
 <p align="center">
-<a href="https://laravel.com" target="_blank"><img src="https://go.dev/blog/go-brand/Go-Logo/PNG/Go-Logo_LightBlue.png" width="200"></a>
+<a href="https://go.dev" target="_blank"><img src="https://go.dev/blog/go-brand/Go-Logo/PNG/Go-Logo_LightBlue.png" width="200"></a>
 </p>
 
 
