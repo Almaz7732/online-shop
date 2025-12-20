@@ -6,6 +6,7 @@ use App\Jobs\NotificationJob;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\DataTables;
 
@@ -49,7 +50,14 @@ class OrderController extends Controller
             $message = $this->formatOrderNotification($order);
 
             // Dispatch notification job to queue
-            NotificationJob::dispatch($message);
+//            NotificationJob::dispatch($message);
+
+            Queue::connection('rabbitmq')->pushRaw(
+                json_encode([
+                    'message' => $message,
+                ]),
+                'default'
+            );
 
             return response()->json([
                 'success' => true,
