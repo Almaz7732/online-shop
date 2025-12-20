@@ -1,10 +1,10 @@
 version: '3.8'
 services:
     app:
-        build: ./docker/php
+        build: ./laravel-app/docker/php
         container_name: laravel_app
         volumes:
-            - ./:/var/www/html
+            - ./laravel-app:/var/www/html
         environment:
             - APP_ENV=local
             - APP_DEBUG=true
@@ -19,8 +19,8 @@ services:
         ports:
             - "8080:80"
         volumes:
-            - ./docker/nginx/site.conf:/etc/nginx/conf.d/default.conf:ro
-            - ./:/var/www/html
+            - ./laravel-app/docker/nginx/site.conf:/etc/nginx/conf.d/default.conf:ro
+            - ./laravel-app:/var/www/html
         depends_on: [app]
         networks:
             - appnet
@@ -162,14 +162,25 @@ services:
             - appnet
 
 
-    worker:
-        build: ./docker/php
-        container_name: laravel_worker
-        volumes:
-            - ./:/var/www/html
-        working_dir: /var/www/html
-        command: php artisan queue:work rabbitmq --sleep=3 --tries=3 --timeout=60 --max-jobs=1000 --max-time=3600 --memory=128
-        depends_on: [rabbitmq, mysql_primary, redis, app]
+    go_notification:
+        build: ./go-notification
+        container_name: go_notification_worker
+        depends_on:
+            - rabbitmq
+        environment:
+            - RABBITMQ_HOST=rabbitmq
+            - RABBITMQ_PORT=5672
+            - RABBITMQ_USER=guest
+            - RABBITMQ_PASSWORD=guest
+            - RABBITMQ_VHOST=/
+            - RABBITMQ_QUEUE=default
+            - RABBITMQ_EXCHANGE=laravel
+            - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+            - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+            - WORKER_COUNT=5
+            - RETRY_COUNT=3
+            - RETRY_DELAY=60s
+        restart: unless-stopped
         networks:
             - appnet
 
